@@ -331,23 +331,52 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n=== ESP32 MP3 Player ===");
 
-  // Inicializace DFPlayer
+  // Inicializace DFPlayer - opakuj dokud se neohlasi (boot trva 1-3s)
   dfSerial.begin(9600, SERIAL_8N1, DFPLAYER_RX, DFPLAYER_TX);
-  delay(3000);
-
   Serial.println("Inicializuji DFPlayer...");
-  if (!dfPlayer.begin(dfSerial)) {
-    Serial.println("CHYBA: DFPlayer nenalezen!");
+  bool dfOk = false;
+  for (int attempt = 1; attempt <= 5; attempt++) {
+    Serial.print("  Pokus ");
+    Serial.print(attempt);
+    Serial.print("/5... ");
+    if (dfPlayer.begin(dfSerial)) {
+      Serial.println("OK!");
+      dfOk = true;
+      break;
+    }
+    Serial.println("neni odpoved");
+    delay(1000);
+  }
+  if (!dfOk) {
+    Serial.println("CHYBA: DFPlayer nenalezen po 5 pokusech!");
     while (true) { delay(1000); }
   }
 
   Serial.println("DFPlayer OK!");
   dfPlayer.volume(currentVolume);
   dfPlayer.setTimeOut(1000);
-  delay(200);
+
+  // Cekej az DFPlayer ohlasi SD kartu (DFPlayerCardOnline)
+  // misto slepeho delay - reagujeme na skutecny signal pripravenosti
+  Serial.println("Cekam na SD kartu...");
+  bool cardReady = false;
+  unsigned long waitStart = millis();
+  while (millis() - waitStart < 5000) {  // max 5s timeout
+    if (dfPlayer.available()) {
+      uint8_t type = dfPlayer.readType();
+      if (type == DFPlayerCardOnline) {
+        Serial.println("SD karta online!");
+        cardReady = true;
+        break;
+      }
+    }
+    delay(10);
+  }
+  if (!cardReady) {
+    Serial.println("SD karta se neohlasila (timeout 5s), zkousim cist...");
+  }
 
   // Čti počet souborů na SD kartě (soubory v rootu, seřazené přes fatsort)
-  // readFileCounts() je spolehlivé, readFileCountsInFolder() není (viz README)
   totalTracks = dfPlayer.readFileCounts();
   if (totalTracks < 0) totalTracks = 0;
   Serial.println("Pocet skladeb na SD: " + String(totalTracks));
@@ -366,9 +395,18 @@ void setup() {
     Serial.println("CHYBA: WiFi.softAP() selhalo!");
     while (true) { delay(1000); }
   }
-  delay(1000);  // počkat než WiFi nastartuje
 
-  IPAddress ip = WiFi.softAPIP();
+  // Pockej az AP dostane IP adresu
+  Serial.print("Cekam na WiFi AP");
+  IPAddress ip;
+  unsigned long wifiStart = millis();
+  while (millis() - wifiStart < 5000) {
+    ip = WiFi.softAPIP();
+    if (ip != IPAddress(0, 0, 0, 0)) break;
+    Serial.print(".");
+    delay(100);
+  }
+  Serial.println();
   Serial.println("WiFi AP spusten: " + String(AP_SSID));
   Serial.println("IP adresa: " + ip.toString());
 
