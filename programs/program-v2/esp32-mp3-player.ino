@@ -22,8 +22,8 @@
  *
  * Knihovny (nainstaluj přes Arduino Library Manager):
  *   - DFRobotDFPlayerMini
- *   - ESPAsyncWebServer (fork: github.com/mathieucarbou/ESPAsyncWebServer)
- *   - AsyncTCP
+ *   - ESPAsyncWebServer (fork: github.com/ESP32Async/ESPAsyncWebServer)
+ *   - AsyncTCP (fork: github.com/ESP32Async/AsyncTCP)
  *
  * Board v Arduino IDE: ESP32 Dev Module
  * Upload Speed: 115200
@@ -39,7 +39,7 @@
 // ====== KONFIGURACE ======
 
 const char* AP_SSID     = "Sorting-Hat";
-const char* AP_PASSWORD = "m1spul3";  // <-- ZDE ZMĚŇ HESLO K WIFI
+const char* AP_PASSWORD = "mispulehat";  // min 8 znaku pro WPA2!
 
 #define DFPLAYER_TX 17  // ESP32 TX -> DFPlayer RX (přímo, bez odporu)
 #define DFPLAYER_RX 16  // ESP32 RX <- DFPlayer TX (přímo, bez odporu)
@@ -373,17 +373,29 @@ void setup() {
 
   Serial.println("DFPlayer OK!");
   dfPlayer.volume(currentVolume);
-  dfPlayer.setTimeOut(500);
+  dfPlayer.setTimeOut(1000);
   delay(200);
 
-  // Čti počet souborů ve složce 01
-  totalTracks = dfPlayer.readFileCountsInFolder(1);
+  // Čti počet souborů na SD kartě (soubory v rootu, seřazené přes fatsort)
+  // readFileCounts() je spolehlivé, readFileCountsInFolder() není (viz README)
+  totalTracks = dfPlayer.readFileCounts();
   if (totalTracks < 0) totalTracks = 0;
-  Serial.println("Pocet skladeb ve slozce 01: " + String(totalTracks));
+  Serial.println("Pocet skladeb na SD: " + String(totalTracks));
+
+  // Validace WiFi hesla (WPA2 vyzaduje min 8 znaku)
+  if (strlen(AP_PASSWORD) > 0 && strlen(AP_PASSWORD) < 8) {
+    Serial.println("CHYBA: WiFi heslo \"" + String(AP_PASSWORD) + "\" ma jen "
+                   + String(strlen(AP_PASSWORD)) + " znaku. WPA2 vyzaduje min 8!");
+    Serial.println("Zmen AP_PASSWORD v kodu na retezec s 8+ znaky.");
+    while (true) { delay(1000); }
+  }
 
   // Spuštění WiFi AP
   WiFi.mode(WIFI_AP);
-  WiFi.softAP(AP_SSID, AP_PASSWORD);
+  if (!WiFi.softAP(AP_SSID, AP_PASSWORD)) {
+    Serial.println("CHYBA: WiFi.softAP() selhalo!");
+    while (true) { delay(1000); }
+  }
   delay(1000);  // počkat než WiFi nastartuje
 
   IPAddress ip = WiFi.softAPIP();

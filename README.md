@@ -147,11 +147,76 @@ cp 002_gryffindor.mp3 /media/$USER/SD/01/
 sudo umount /dev/sda1
 ```
 
-### Čtení počtu souborů v kódu:
-- `dfPlayer.readFileCounts()` – čte celkový počet souborů v rootu
-- `dfPlayer.readFileCountsInFolder(1)` – čte počet ve složce 01/
-- `dfPlayer.play(1)` – přehraje první soubor (root)
-- `dfPlayer.playFolder(1, 1)` – přehraje soubor 001 ze složky 01/
+### API metody knihovny DFRobotDFPlayerMini (v1.0.6):
+
+#### Dotazy na SD kartu:
+- `dfPlayer.readFileCounts()` – celkový počet souborů na SD kartě (cmd 0x48)
+- `dfPlayer.readFolderCounts()` – celkový počet složek na SD kartě (cmd 0x4F)
+- `dfPlayer.readFileCountsInFolder(1)` – počet souborů ve složce 01/ (cmd 0x4E)
+  - ⚠️ **Nespolehlivé!** Často vrací 0 i když soubory existují (potřebuje delší init)
+- `dfPlayer.readCurrentFileNumber()` – číslo právě přehrávaného souboru (cmd 0x4C)
+- `dfPlayer.readState()` – stav přehrávače (cmd 0x42)
+- `dfPlayer.readVolume()` – aktuální hlasitost (cmd 0x43)
+
+#### Přehrávání – pozor na rozdíly:
+- `dfPlayer.play(1)` – přehraje soubor #1 z **rootu** SD karty (pořadí dle FAT tabulky, cmd 0x03)
+- `dfPlayer.playFolder(1, 1)` – přehraje soubor 001 ze složky 01/ (cmd 0x0F, max 255 souborů/složka)
+- `dfPlayer.playLargeFolder(1, 1)` – jako playFolder ale podporuje až 3000 souborů/složka (cmd 0x14)
+- `dfPlayer.playMp3Folder(1)` – přehraje soubor 0001.mp3 ze speciální složky /MP3 (cmd 0x12)
+
+#### Ovládání:
+- `dfPlayer.pause()` / `dfPlayer.start()` – pauza / pokračování
+- `dfPlayer.stop()` – zastavení
+- `dfPlayer.next()` / `dfPlayer.previous()` – další / předchozí skladba
+- `dfPlayer.volume(0-30)` – nastavení hlasitosti
+- `dfPlayer.loop(fileNumber)` – opakování jedné skladby
+- `dfPlayer.loopFolder(folderNumber)` – opakování celé složky
+- `dfPlayer.randomAll()` – náhodné přehrávání
+- `dfPlayer.enableLoopAll()` / `dfPlayer.disableLoopAll()` – smyčka všech skladeb
+- `dfPlayer.EQ(0-5)` – ekvalizér (Normal, Pop, Rock, Jazz, Classic, Bass)
+
+#### Timeout a spolehlivost:
+- Výchozí timeout: **500ms** (nastavitelné přes `dfPlayer.setTimeOut(ms)`)
+- Všechny read* metody jsou **blokující** – čekají na odpověď nebo timeout
+- Knihovna **nemá retry** – při selhání vrací -1, opakování musí řešit volající
+- V ACK módu (výchozí) se příkazy serializují – předchozí musí dostat odpověď než se pošle další
+
+#### Limity DFPlayeru:
+- Root: max 3000 souborů (pojmenované 0001.mp3 až 3000.mp3)
+- Složky: max 99 (pojmenované 01 až 99)
+- Soubory ve složce: max 255 přes `playFolder()`, max 3000 přes `playLargeFolder()`
+- DFPlayer **neumí posílat názvy souborů** – jen počty a čísla
+- Pořadí souborů = pořadí zápisu do FAT tabulky, ne abecední
+
+#### Otestované výsledky na MH2024K-24SS (duben 2026):
+
+Testováno s 2 MP3 soubory (`001.mp3`, `002.mp3`) v **rootu** SD karty, seřazeno přes `fatsort`.
+
+**Dotazy – co funguje:**
+
+| Metoda | Výsledek | Poznámka |
+|---|---|---|
+| `readFileCounts()` | **2** ✅ | Spolehlivé, funguje hned po init |
+| `readFolderCounts()` | **-1** ❌ | Nefunguje na tomto čipu (timeout) |
+| `readFileCountsInFolder(1)` | **-1 / 0** ❌ | Nespolehlivé i s delším delay |
+| `readCurrentFileNumber()` | **OK** ✅ | Vrací číslo právě přehrávaného souboru |
+| `readState()` | **Nespolehlivé** ⚠️ | Vrací -1 i během přehrávání |
+
+**Přehrávání – co funguje:**
+
+| Metoda | Soubory v rootu | Soubory ve složce 01/ |
+|---|---|---|
+| `play(N)` | ✅ **Funguje** | ✅ Přehraje (ale číslování nespolehlivé) |
+| `playFolder(1, N)` | ❌ Nefunguje | ✅ Funguje |
+| `playLargeFolder(1, N)` | ❌ Nefunguje | Netestováno |
+| `playMp3Folder(N)` | ❌ Nefunguje | ❌ (vyžaduje /MP3 složku) |
+
+**Doporučené řešení pro WiFi přehrávač:**
+- SD karta: soubory `001.mp3`, `002.mp3`, ... přímo v **rootu** (bez složek)
+- Po zápisu seřadit pořadí: `sudo fatsort /dev/sdX1`
+- Zjistit počet: `readFileCounts()` (spolehlivé)
+- Přehrát: `play(N)` kde N = 1 až počet souborů
+- Ověřit přehrávání: `readCurrentFileNumber()` (spolehlivé)
 
 ---
 
@@ -392,7 +457,7 @@ Změř baterii uvnitř multimetru (9V) nebo jakoukoliv baterii – musí ukázat
 ### Přihlášení:
 1. Připoj ESP32 k napájení (baterie nebo programátor)
 2. Na telefonu nebo PC se připoj k WiFi síti **Sorting-Hat**
-3. Heslo: **m1spul3** (změnit v kódu na řádku `AP_PASSWORD`)
+3. Heslo: **mispulehat** (změnit v kódu na řádku `AP_PASSWORD`, min 8 znaků pro WPA2!)
 4. Otevři prohlížeč na adrese **http://192.168.4.1**
 
 ### Ovládání:
@@ -503,7 +568,7 @@ Hraje skladba 1...
 2. ✅ DFPlayer napájet z **3V3 pinu (pin 1)**, NE z VCC pinu (pin 15)!
 3. ✅ RX a TX DFPlayeru jsou na **LEVÉ** straně modulu
 4. ✅ GPIO17 → DFPlayer RX, GPIO16 ← DFPlayer TX – **přímo, BEZ odporu**
-5. ✅ SD karta formát **FAT32**, složka **01/**, soubory **001_nazev.mp3**
+5. ✅ SD karta formát **FAT32**, soubory **001.mp3, 002.mp3...** v rootu, seřazené přes `fatsort`
 6. ✅ Po formátování SD karty: `sudo umount` před vyjmutím!
 7. ✅ Serial Monitor zavřít před nahráváním
 8. ✅ Board v IDE: **ESP32 Dev Module**
@@ -532,7 +597,12 @@ Hraje skladba 1...
 | Odpor 1kΩ blokoval komunikaci | 3.3V systém nepotřebuje odpor | Odpor odstranit, zapojit přímo |
 | Reproduktor cvakl ale nehrál | DFPlayer neměl napájení | Napájet z 3V3 místo VCC |
 | readFileCountsInFolder vrací 0 | DFPlayer potřebuje delší init | Zvýšit delay nebo použít readFileCounts |
+| readFolderCounts vrací -1 | Nepodporováno na MH2024K-24SS | Nepoužívat, spoléhat na readFileCounts |
+| WiFi program nevidí soubory | readFileCountsInFolder(1) nespolehlivé | Použít readFileCounts() + play(N), soubory v rootu |
+| play(2) hlásí "soubor nenalezen" | Zprávy z předchozích příkazů ve frontě | Vyprázdnit frontu (drainMessages) před dalším příkazem |
+| readState vrací -1 za přehrávání | Nespolehlivé na MH2024K-24SS | Použít readCurrentFileNumber() pro ověření stavu |
 | Reproduktor cvaká při startu | Šum na UART během bootu ESP32 | Neškodné; lze zmírnit 10kΩ pull-down |
+| WiFi AP s generickým názvem a bez hesla | Heslo kratší než 8 znaků → softAP() selže tiše | Heslo min 8 znaků pro WPA2; kontrolovat návratovou hodnotu softAP() |
 
 ---
 
