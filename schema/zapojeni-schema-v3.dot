@@ -1,0 +1,101 @@
+digraph wiring {
+    rankdir=TB;
+    node [fontname="Courier" fontsize=10];
+    edge [fontname="Courier" fontsize=9];
+    graph [fontname="Courier" fontsize=11 label="ESP32-LPKit v2.4 + DFPlayer Mini (MH2024K-24SS)\nSchéma zapojení (2x reproduktor v sérii)" labelloc=t];
+    nodesep=0.6;
+    ranksep=1.2;
+
+    esp32 [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+<TR><TD COLSPAN="3" BGCOLOR="gray85"><B>ESP32-LPKit v2.4</B></TD></TR>
+<TR><TD BGCOLOR="gray95"><B>Levá řada</B></TD><TD BGCOLOR="gray90"><B>#</B></TD><TD BGCOLOR="gray95"><B>Pravá řada</B></TD></TR>
+<TR><TD ALIGN="LEFT">3V3</TD>             <TD>1</TD>  <TD ALIGN="RIGHT">GND</TD></TR>
+<TR><TD ALIGN="LEFT">EN</TD>              <TD>2</TD>  <TD ALIGN="RIGHT">GPIO23</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO36 (VP)</TD>     <TD>3</TD>  <TD ALIGN="RIGHT">GPIO22</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO39 (VN)</TD>     <TD>4</TD>  <TD ALIGN="RIGHT">GPIO1 (U0TXD)</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO34</TD>          <TD>5</TD>  <TD ALIGN="RIGHT">GPIO3 (U0RXD)</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO35</TD>          <TD>6</TD>  <TD ALIGN="RIGHT">GPIO21</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO32</TD>          <TD>7</TD>  <TD ALIGN="RIGHT">GND</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO33</TD>          <TD>8</TD>  <TD ALIGN="RIGHT">GPIO19</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO25</TD>          <TD>9</TD>  <TD ALIGN="RIGHT">GPIO18</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO26</TD>          <TD>10</TD> <TD ALIGN="RIGHT">GPIO5</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO27</TD>          <TD>11</TD> <TD ALIGN="RIGHT" PORT="g17" BGCOLOR="lightyellow"><B>GPIO17 (UART2_TX)</B></TD></TR>
+<TR><TD ALIGN="LEFT">GPIO14</TD>          <TD>12</TD> <TD ALIGN="RIGHT" PORT="g16" BGCOLOR="honeydew"><B>GPIO16 (UART2_RX)</B></TD></TR>
+<TR><TD ALIGN="LEFT">GPIO12</TD>          <TD>13</TD> <TD ALIGN="RIGHT">GPIO4</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="lgnd" BGCOLOR="gray90"><B>GND</B></TD>  <TD>14</TD> <TD ALIGN="RIGHT">GPIO0</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="lvcc" BGCOLOR="mistyrose"><B>VCC (5V USB)</B></TD> <TD>15</TD> <TD ALIGN="RIGHT">GPIO2</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray85">[USB-C] pouze nabíjení bat.</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray85">[PROGRAM header] pro CH9102</TD></TR>
+</TABLE>
+>];
+
+    dfplayer [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+<TR><TD COLSPAN="3" BGCOLOR="gray85"><B>DFPlayer Mini (MH2024K-24SS)</B></TD></TR>
+<TR><TD BGCOLOR="gray95"><B>Levá (1-8)</B></TD><TD BGCOLOR="gray90"><B>#</B></TD><TD BGCOLOR="gray95"><B>Pravá (16-9)</B></TD></TR>
+<TR><TD ALIGN="LEFT" PORT="vcc" BGCOLOR="mistyrose"><B>VCC (3.2-5V)</B></TD>  <TD>1/16</TD>  <TD ALIGN="RIGHT">BUSY (nepotřebujeme)</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="rx" BGCOLOR="lightyellow"><B>RX (9600bps)</B></TD>  <TD>2/15</TD>  <TD ALIGN="RIGHT">USB- (nepotřebujeme)</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="tx" BGCOLOR="honeydew"><B>TX (9600bps)</B></TD>     <TD>3/14</TD>  <TD ALIGN="RIGHT">USB+ (nepotřebujeme)</TD></TR>
+<TR><TD ALIGN="LEFT">DAC_R (audio out R)</TD>  <TD>4/13</TD>  <TD ALIGN="RIGHT">ADKEY2 (nepotřebujeme)</TD></TR>
+<TR><TD ALIGN="LEFT">DAC_L (audio out L)</TD>  <TD>5/12</TD>  <TD ALIGN="RIGHT">ADKEY1 (nepotřebujeme)</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="spk1" BGCOLOR="lavenderblush"><B>SPK1 (+)</B></TD> <TD>6/11</TD>  <TD ALIGN="RIGHT">IO2 (nepotřebujeme)</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="gnd" BGCOLOR="gray90"><B>GND</B></TD>              <TD>7/10</TD>  <TD ALIGN="RIGHT">GND</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="spk2" BGCOLOR="lavenderblush"><B>SPK2 (-)</B></TD> <TD>8/9</TD>   <TD ALIGN="RIGHT">IO1 (nepotřebujeme)</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray85">[micro SD slot] FAT32, složka 01-klobouk</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray95">UART: fixně 9600bps, 8N1</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray95">Napájení: 3.2-5V (optimum 4.2V)</TD></TR>
+</TABLE>
+>];
+
+    resistor [shape=box label="  1kΩ odpor  \n(hnědá-hnědá-\nčerná-černá-hnědá)" style="bold,rounded" fontname="Courier" fontsize=9];
+
+    spk1 [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+<TR><TD BGCOLOR="lavenderblush"><B>Reproduktor 1</B></TD></TR>
+<TR><TD>3W 4Ω 40mm</TD></TR>
+<TR><TD PORT="plus">+ (kladný)</TD></TR>
+<TR><TD PORT="minus">- (záporný)</TD></TR>
+</TABLE>
+>];
+
+    spk2 [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+<TR><TD BGCOLOR="lavenderblush"><B>Reproduktor 2</B></TD></TR>
+<TR><TD>3W 4Ω 40mm</TD></TR>
+<TR><TD PORT="plus">+ (kladný)</TD></TR>
+<TR><TD PORT="minus">- (záporný)</TD></TR>
+</TABLE>
+>];
+
+    note [shape=plaintext fontname="Courier" fontsize=9 label=<
+<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="8" BGCOLOR="lightyellow">
+<TR><TD><B>POZNÁMKY Z DATASHEETŮ:</B></TD></TR>
+<TR><TD ALIGN="LEFT">• ESP32: GPIO6-11 nepoužívat (interní SPI flash)</TD></TR>
+<TR><TD ALIGN="LEFT">• ESP32: provozní napětí 3.0-3.6V, min 500mA zdroj</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: UART fixně 9600bps, nelze změnit</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: po zapnutí čekat 1.5-3s na inicializaci</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: po výběru zařízení čekat 200ms</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: hlasitost 0-30 (příkaz 0x06)</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: max 99 složek, 255 souborů/složka</TD></TR>
+<TR><TD ALIGN="LEFT">• 2x repro v sérii: 4Ω+4Ω = 8Ω (tišší, ale bezpečné)</TD></TR>
+<TR><TD ALIGN="LEFT">• Pravá strana DFPlayeru: nepotřebujeme (USB, ADKEY, IO)</TD></TR>
+<TR><TD ALIGN="LEFT">• Programování ESP32: přes CH9102 programmer (3.3V!)</TD></TR>
+</TABLE>
+>];
+
+    // Propojení
+    esp32:lvcc -> dfplayer:vcc [label="  červený kabel (5V)  " color=red penwidth=2 fontcolor=red];
+    esp32:lgnd -> dfplayer:gnd [label="  černý kabel (GND)  " color=black penwidth=2];
+    esp32:g17 -> resistor [label="  oranžový  " color="#CC6600" penwidth=2 fontcolor="#CC6600"];
+    resistor -> dfplayer:rx [label="  oranž. → RX  " color="#CC6600" penwidth=2 fontcolor="#CC6600"];
+    dfplayer:tx -> esp32:g16 [label="  zelený (přímo, bez odporu)  " color="#009966" penwidth=2 fontcolor="#009966"];
+
+    // Reproduktory v sérii
+    dfplayer:spk1 -> spk1:plus [label="  SPK1 → Repro1(+)  " color="#CC3366" penwidth=2 fontcolor="#CC3366"];
+    spk1:minus -> spk2:plus [label="  Repro1(-) → Repro2(+)\n  [v sérii]  " color="#CC3366" penwidth=2 fontcolor="#CC3366" style=bold];
+    spk2:minus -> dfplayer:spk2 [label="  Repro2(-) → SPK2  " color="#CC3366" penwidth=2 fontcolor="#CC3366" style=dashed];
+
+    // Invisible edge for layout
+    dfplayer -> note [style=invis];
+}

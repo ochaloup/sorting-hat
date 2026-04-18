@@ -1,0 +1,127 @@
+digraph wiring {
+    rankdir=LR;
+    node [fontname="Courier" fontsize=10];
+    edge [fontname="Courier" fontsize=9];
+    graph [fontname="Courier" fontsize=12 label="ESP32-LPKit v2.4 + DFPlayer Mini (MH2024K-24SS) + LaskaKit microSD Reader\nSchéma zapojení (2x reproduktor v sérii)" labelloc=t];
+    nodesep=0.8;
+    ranksep=1.5;
+
+    dfplayer [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+<TR><TD COLSPAN="3" BGCOLOR="#b2dfdb"><B>DFPlayer Mini (MH2024K-24SS)</B></TD></TR>
+<TR><TD BGCOLOR="gray95"><B>LEVÁ strana</B></TD><TD BGCOLOR="gray90"><B>pin</B></TD><TD BGCOLOR="gray80"><B>pravá strana</B></TD></TR>
+<TR><TD ALIGN="LEFT" PORT="vcc"  BGCOLOR="mistyrose"><B>VCC (3.2-5V) ←</B></TD>  <TD>1</TD>  <TD ALIGN="RIGHT"><FONT COLOR="gray">16: BUSY</FONT></TD></TR>
+<TR><TD ALIGN="LEFT" PORT="rx"   BGCOLOR="lightyellow"><B>RX (9600bps) ←</B></TD>  <TD>2</TD>  <TD ALIGN="RIGHT"><FONT COLOR="gray">15: USB-</FONT></TD></TR>
+<TR><TD ALIGN="LEFT" PORT="tx"   BGCOLOR="honeydew"><B>TX (9600bps) →</B></TD>     <TD>3</TD>  <TD ALIGN="RIGHT"><FONT COLOR="gray">14: USB+</FONT></TD></TR>
+<TR><TD ALIGN="LEFT"><FONT COLOR="gray">DAC_R</FONT></TD>  <TD>4</TD>  <TD ALIGN="RIGHT"><FONT COLOR="gray">13: ADKEY2</FONT></TD></TR>
+<TR><TD ALIGN="LEFT"><FONT COLOR="gray">DAC_L</FONT></TD>  <TD>5</TD>  <TD ALIGN="RIGHT"><FONT COLOR="gray">12: ADKEY1</FONT></TD></TR>
+<TR><TD ALIGN="LEFT" PORT="spk1" BGCOLOR="lavenderblush"><B>SPK1 (+) →</B></TD>   <TD>6</TD>  <TD ALIGN="RIGHT"><FONT COLOR="gray">11: IO2</FONT></TD></TR>
+<TR><TD ALIGN="LEFT" PORT="gnd"  BGCOLOR="#e0e0e0"><B>GND ←</B></TD>              <TD>7</TD>  <TD ALIGN="RIGHT"><FONT COLOR="gray">10: GND</FONT></TD></TR>
+<TR><TD ALIGN="LEFT" PORT="spk2" BGCOLOR="lavenderblush"><B>SPK2 (-) ←</B></TD>   <TD>8</TD>  <TD ALIGN="RIGHT"><FONT COLOR="gray">9: IO1</FONT></TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray85">[micro SD slot] FAT32 | složka: 01/ | soubory: 001_nazev.mp3</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray90">UART: fixně 9600bps, 8N1 | Napájení: 3.2-5V (opt. 4.2V)</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="#ffcccc"><B>⚠ RX a TX jsou fyzicky na LEVÉ straně modulu!</B></TD></TR>
+</TABLE>
+>];
+
+    esp32 [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+<TR><TD COLSPAN="3" BGCOLOR="#bbdefb"><B>ESP32-LPKit v2.4</B></TD></TR>
+<TR><TD BGCOLOR="gray95"><B>Levá řada</B></TD><TD BGCOLOR="gray90"><B>#</B></TD><TD BGCOLOR="gray95"><B>Pravá řada</B></TD></TR>
+<TR><TD ALIGN="LEFT">3V3</TD>                  <TD>1</TD>  <TD ALIGN="RIGHT" PORT="gnd_r">GND</TD></TR>
+<TR><TD ALIGN="LEFT">EN</TD>                   <TD>2</TD>  <TD ALIGN="RIGHT">GPIO23</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO36 (VP)</TD>          <TD>3</TD>  <TD ALIGN="RIGHT">GPIO22</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO39 (VN)</TD>          <TD>4</TD>  <TD ALIGN="RIGHT">GPIO1 (U0TXD)</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO34</TD>               <TD>5</TD>  <TD ALIGN="RIGHT">GPIO3 (U0RXD)</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO35</TD>               <TD>6</TD>  <TD ALIGN="RIGHT">GPIO21</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO32</TD>               <TD>7</TD>  <TD ALIGN="RIGHT">GND</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO33</TD>               <TD>8</TD>  <TD ALIGN="RIGHT" PORT="g19" BGCOLOR="#fff9c4">GPIO19 (MISO)</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO25</TD>               <TD>9</TD>  <TD ALIGN="RIGHT" PORT="g18" BGCOLOR="#fff9c4">GPIO18 (SCK)</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO26</TD>               <TD>10</TD> <TD ALIGN="RIGHT" PORT="g05" BGCOLOR="#fff9c4">GPIO5  (CS)</TD></TR>
+<TR><TD ALIGN="LEFT">GPIO27</TD>               <TD>11</TD> <TD ALIGN="RIGHT" PORT="g17" BGCOLOR="lightyellow"><B>GPIO17 (UART2_TX) →</B></TD></TR>
+<TR><TD ALIGN="LEFT">GPIO14</TD>               <TD>12</TD> <TD ALIGN="RIGHT" PORT="g16" BGCOLOR="honeydew"><B>GPIO16 (UART2_RX) ←</B></TD></TR>
+<TR><TD ALIGN="LEFT">GPIO12</TD>               <TD>13</TD> <TD ALIGN="RIGHT" PORT="g23" BGCOLOR="#fff9c4">GPIO23 (MOSI)</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="lgnd" BGCOLOR="#e0e0e0"><B>GND →</B></TD>    <TD>14</TD> <TD ALIGN="RIGHT">GPIO13</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="lvcc" BGCOLOR="mistyrose"><B>VCC (5V USB) →</B></TD> <TD>15</TD> <TD ALIGN="RIGHT">GPIO2</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray85">[USB-C] pouze nabíjení baterie</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="gray85">[PROGRAM header] pro CH9102 (spodní strana, přepnout na 3.3V!)</TD></TR>
+<TR><TD COLSPAN="3" BGCOLOR="#e3f2fd">Board v Arduino IDE: ESP32 Dev Module</TD></TR>
+</TABLE>
+>];
+
+    resistor [shape=box label="1kΩ odpor\nhnědá-černá-\nčerná-hnědá" style="rounded" fontname="Courier" fontsize=9 bgcolor="lightyellow"];
+
+    sdreader [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+<TR><TD COLSPAN="2" BGCOLOR="#fff9c4"><B>LaskaKit microSD Reader</B></TD></TR>
+<TR><TD ALIGN="LEFT" PORT="sd_vcc"  BGCOLOR="#e3f2fd"><B>VCC ←</B></TD>  <TD ALIGN="RIGHT">3.3V (ne 5V!)</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="sd_gnd"  BGCOLOR="#e0e0e0"><B>GND ←</B></TD>  <TD ALIGN="RIGHT">GND</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="sd_mosi" BGCOLOR="#fff9c4"><B>MOSI ←</B></TD> <TD ALIGN="RIGHT">GPIO23</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="sd_miso" BGCOLOR="#fff9c4"><B>MISO →</B></TD> <TD ALIGN="RIGHT">GPIO19</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="sd_sck"  BGCOLOR="#fff9c4"><B>SCK ←</B></TD>  <TD ALIGN="RIGHT">GPIO18</TD></TR>
+<TR><TD ALIGN="LEFT" PORT="sd_cs"   BGCOLOR="#fff9c4"><B>CS ←</B></TD>   <TD ALIGN="RIGHT">GPIO5</TD></TR>
+<TR><TD COLSPAN="2" BGCOLOR="gray85">playlist.txt: 001,Slytherin</TD></TR>
+<TR><TD COLSPAN="2" BGCOLOR="gray90">Knihovna: SD.h (standard Arduino)</TD></TR>
+</TABLE>
+>];
+
+    spk1 [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+<TR><TD BGCOLOR="lavenderblush"><B>Reproduktor 1</B></TD></TR>
+<TR><TD>3W 4Ω 40mm</TD></TR>
+<TR><TD PORT="plus">+ (kladný)</TD></TR>
+<TR><TD PORT="minus">- (záporný)</TD></TR>
+</TABLE>
+>];
+
+    spk2 [shape=plaintext label=<
+<TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" BGCOLOR="white">
+<TR><TD BGCOLOR="lavenderblush"><B>Reproduktor 2</B></TD></TR>
+<TR><TD>3W 4Ω 40mm</TD></TR>
+<TR><TD PORT="plus">+ (kladný)</TD></TR>
+<TR><TD PORT="minus">- (záporný)</TD></TR>
+</TABLE>
+>];
+
+    note [shape=plaintext fontname="Courier" fontsize=9 label=<
+<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="8" BGCOLOR="lightyellow">
+<TR><TD><B>POZNÁMKY:</B></TD></TR>
+<TR><TD ALIGN="LEFT">• ESP32: GPIO6-11 nepoužívat (interní SPI flash)</TD></TR>
+<TR><TD ALIGN="LEFT">• ESP32: provozní napětí 3.0-3.6V, min 500mA zdroj</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: UART fixně 9600bps, nelze změnit</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: po zapnutí čekat 2.5s na inicializaci</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: hlasitost 0-30 (příkaz 0x06)</TD></TR>
+<TR><TD ALIGN="LEFT">• DFPlayer: max 99 složek, 255 souborů/složka</TD></TR>
+<TR><TD ALIGN="LEFT">• 2x repro v sérii: 4Ω+4Ω = 8Ω (tišší, ale bezpečné)</TD></TR>
+<TR><TD ALIGN="LEFT">• SD Reader: připojit na 3.3V (ne 5V!)</TD></TR>
+<TR><TD ALIGN="LEFT">• SD Reader: SPI piny GPIO23/19/18/5</TD></TR>
+<TR><TD ALIGN="LEFT">• Programování: CH9102 programmer (přepnout na 3.3V!)</TD></TR>
+<TR><TD ALIGN="LEFT">• Linux: sudo usermod -a -G dialout $USER</TD></TR>
+<TR><TD ALIGN="LEFT">• Pokud upload selže: držet FLASH, pak Upload, pustit FLASH</TD></TR>
+</TABLE>
+>];
+
+    // DFPlayer ← ESP32 (vodiče vedou DOLEVA)
+    esp32:lvcc -> dfplayer:vcc [label="  červený (5V)  " color=red penwidth=2.5 fontcolor=red];
+    esp32:lgnd -> dfplayer:gnd [label="  černý (GND)  " color=black penwidth=2];
+    esp32:g17  -> resistor     [label="  oranžový  " color="#CC6600" penwidth=2 fontcolor="#CC6600"];
+    resistor   -> dfplayer:rx  [label="  oranž. → RX  " color="#CC6600" penwidth=2 fontcolor="#CC6600"];
+    dfplayer:tx -> esp32:g16   [label="  zelený (přímo)  " color="#009966" penwidth=2 fontcolor="#009966"];
+
+    // ESP32 → SD Reader (vodiče vedou DOPRAVA)
+    esp32:g23  -> sdreader:sd_mosi [label="  MOSI  " color="#9966CC" penwidth=2 fontcolor="#9966CC"];
+    sdreader:sd_miso -> esp32:g19  [label="  MISO  " color="#9966CC" penwidth=2 fontcolor="#9966CC"];
+    esp32:g18  -> sdreader:sd_sck  [label="  SCK  " color="#9966CC" penwidth=2 fontcolor="#9966CC"];
+    esp32:g05  -> sdreader:sd_cs   [label="  CS  " color="#9966CC" penwidth=2 fontcolor="#9966CC"];
+    esp32:gnd_r -> sdreader:sd_gnd [label="  GND  " color=black penwidth=1.5];
+    esp32:g19  -> sdreader:sd_vcc  [label="  3V3  " color="#1565C0" penwidth=1.5 fontcolor="#1565C0"];
+
+    // Reproduktory v sérii
+    dfplayer:spk1 -> spk1:plus  [label="  SPK1 → Repro1(+)  " color="#CC3366" penwidth=2 fontcolor="#CC3366"];
+    spk1:minus -> spk2:plus     [label="  Repro1(-) → Repro2(+)  " color="#CC3366" penwidth=2 fontcolor="#CC3366" style=bold];
+    spk2:minus -> dfplayer:spk2 [label="  Repro2(-) → SPK2  " color="#CC3366" penwidth=2 fontcolor="#CC3366" style=dashed];
+
+    // Layout
+    { rank=same; dfplayer; spk1; spk2; }
+    dfplayer -> note [style=invis];
+}
