@@ -31,6 +31,7 @@
  */
 
 #include <WiFi.h>
+#include <DNSServer.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <HardwareSerial.h>
@@ -49,14 +50,13 @@ const char* AP_PASSWORD = "mispulehat";  // min 8 znaku pro WPA2!
 HardwareSerial dfSerial(2);  // UART2
 DFRobotDFPlayerMini dfPlayer;
 AsyncWebServer server(80);
+DNSServer dnsServer;
 
 enum PlayState { STOPPED, PLAYING, PAUSED };
 PlayState currentState = STOPPED;
 int currentTrack = 0;
 int totalTracks = 0;
 int currentVolume = 20;  // 0-30, výchozí ~66%
-unsigned long playStartTime = 0;
-unsigned long pauseOffset = 0;
 
 // ====== HTML STRÁNKA ======
 
@@ -81,13 +81,7 @@ const char PLAYER_HTML[] PROGMEM = R"rawliteral(
 
   .now-playing{background:#14141f;border:1px solid #2a2a3a;border-radius:12px;
     padding:20px;margin-bottom:20px}
-  .np-title{font-size:1rem;color:#fff;margin-bottom:12px;min-height:1.2em}
-  .progress-bar{width:100%;height:6px;background:#2a2a3a;border-radius:3px;
-    margin-bottom:8px;overflow:hidden}
-  .progress-fill{height:100%;background:#5b5bff;border-radius:3px;width:0%;
-    transition:width .5s linear}
-  .time-row{display:flex;justify-content:space-between;font-size:.75rem;color:#888;
-    margin-bottom:16px}
+  .np-title{font-size:1rem;color:#fff;margin-bottom:16px;min-height:1.2em}
   .controls{display:flex;gap:12px;justify-content:center}
   .ctrl-btn{width:48px;height:48px;border:1px solid #2a2a3a;border-radius:50%;
     background:#14141f;color:#e0e0e0;font-size:1.2rem;cursor:pointer;
@@ -126,11 +120,6 @@ const char PLAYER_HTML[] PROGMEM = R"rawliteral(
 
 <div class="now-playing">
   <div class="np-title" id="np-title">Nic se nepřehrává</div>
-  <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
-  <div class="time-row">
-    <span id="time-cur">0:00</span>
-    <span id="time-rem">0:00</span>
-  </div>
   <div class="controls">
     <button class="ctrl-btn" id="btn-stop" onclick="sendCmd('stop')" disabled title="Stop">&#9632;</button>
     <button class="ctrl-btn" id="btn-pause" onclick="sendCmd('pause')" disabled title="Pause">&#10074;&#10074;</button>
@@ -146,14 +135,17 @@ const char PLAYER_HTML[] PROGMEM = R"rawliteral(
 let tracks=[];
 
 async function api(path,body){
-  const opts={};
-  if(body){opts.method='POST';opts.headers={'Content-Type':'application/json'};opts.body=JSON.stringify(body)}
-  const r=await fetch('/api'+path,opts);
-  return r.json();
+  try{
+    const opts={};
+    if(body){opts.method='POST';opts.headers={'Content-Type':'application/json'};opts.body=JSON.stringify(body)}
+    const r=await fetch('/api'+path,opts);
+    return await r.json();
+  }catch(e){return null}
 }
 
 async function loadTracks(){
   const d=await api('/tracks');
+  if(!d)return;
   tracks=d.tracks||[];
   const ul=document.getElementById('tracks');
   if(!tracks.length){ul.innerHTML='<li class="status">Na SD kartě nejsou žádné MP3 soubory</li>';return}
@@ -173,13 +165,15 @@ async function playTrack(num){
 }
 
 async function sendCmd(cmd){
-  await api('/'+cmd);
+  await api('/'+cmd,{});
   pollStatus();
 }
 
+let volTimer=null;
 async function setVolume(v){
   document.getElementById('vol-val').textContent=v;
-  await api('/volume',{volume:parseInt(v)});
+  clearTimeout(volTimer);
+  volTimer=setTimeout(()=>api('/volume',{volume:parseInt(v)}),150);
 }
 
 async function pollStatus(){
@@ -187,26 +181,16 @@ async function pollStatus(){
   if(!d)return;
 
   const title=document.getElementById('np-title');
-  const prog=document.getElementById('prog');
-  const timeCur=document.getElementById('time-cur');
-  const timeRem=document.getElementById('time-rem');
   const btnStop=document.getElementById('btn-stop');
   const btnPause=document.getElementById('btn-pause');
   const btnResume=document.getElementById('btn-resume');
 
   if(d.state==='stopped'){
     title.textContent='Nic se nepřehrává';
-    prog.style.width='0%';
-    timeCur.textContent='0:00';
-    timeRem.textContent='0:00';
     btnStop.disabled=true;btnPause.disabled=true;btnResume.disabled=true;
   } else {
     const name=d.track>0&&d.track<=tracks.length?tracks[d.track-1]:'Skladba '+d.track;
     title.textContent=name;
-    const elapsed=d.elapsed||0;
-    timeCur.textContent=fmtTime(elapsed);
-    timeRem.textContent=d.duration?fmtTime(d.duration):'--:--';
-    if(d.duration>0)prog.style.width=Math.min(100,(elapsed/d.duration)*100)+'%';
     btnStop.disabled=false;
     btnPause.disabled=d.state==='paused';
     btnResume.disabled=d.state==='playing';
@@ -219,12 +203,6 @@ async function pollStatus(){
 
   document.getElementById('vol').value=d.volume;
   document.getElementById('vol-val').textContent=d.volume;
-}
-
-function fmtTime(s){
-  s=Math.floor(s);
-  const m=Math.floor(s/60);
-  return m+':'+(s%60<10?'0':'')+(s%60);
 }
 
 loadTracks().then(()=>pollStatus());
@@ -271,8 +249,6 @@ void setupServer() {
         dfPlayer.play(track);
         currentTrack = track;
         currentState = PLAYING;
-        playStartTime = millis();
-        pauseOffset = 0;
         request->send(200, "application/json", "{\"ok\":true}");
       } else {
         request->send(400, "application/json", "{\"error\":\"invalid track\"}");
@@ -284,7 +260,6 @@ void setupServer() {
     if (currentState == PLAYING) {
       dfPlayer.pause();
       currentState = PAUSED;
-      pauseOffset += millis() - playStartTime;
     }
     request->send(200, "application/json", "{\"ok\":true}");
   });
@@ -294,7 +269,6 @@ void setupServer() {
     if (currentState == PAUSED) {
       dfPlayer.start();
       currentState = PLAYING;
-      playStartTime = millis();
     }
     request->send(200, "application/json", "{\"ok\":true}");
   });
@@ -304,7 +278,6 @@ void setupServer() {
     dfPlayer.stop();
     currentState = STOPPED;
     currentTrack = 0;
-    pauseOffset = 0;
     request->send(200, "application/json", "{\"ok\":true}");
   });
 
@@ -332,23 +305,20 @@ void setupServer() {
   // API: Status
   server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
     String stateStr = "stopped";
-    unsigned long elapsed = 0;
-
-    if (currentState == PLAYING) {
-      stateStr = "playing";
-      elapsed = pauseOffset + (millis() - playStartTime);
-    } else if (currentState == PAUSED) {
-      stateStr = "paused";
-      elapsed = pauseOffset;
-    }
+    if (currentState == PLAYING) stateStr = "playing";
+    else if (currentState == PAUSED) stateStr = "paused";
 
     String json = "{\"state\":\"" + stateStr + "\","
                   "\"track\":" + String(currentTrack) + ","
-                  "\"elapsed\":" + String(elapsed / 1000) + ","
-                  "\"duration\":0,"
                   "\"volume\":" + String(currentVolume) + ","
                   "\"totalTracks\":" + String(totalTracks) + "}";
     request->send(200, "application/json", json);
+  });
+
+  // Captive portal: presmeruj vsechny nezname URL na hlavni stranku
+  // (Android/iOS/Windows testuje specificke URL pro detekci captive portalu)
+  server.onNotFound([](AsyncWebServerRequest *request) {
+    request->redirect("http://192.168.4.1/");
   });
 
   server.begin();
@@ -402,6 +372,10 @@ void setup() {
   Serial.println("WiFi AP spusten: " + String(AP_SSID));
   Serial.println("IP adresa: " + ip.toString());
 
+  // Captive portal - vsechny DNS dotazy presmeruje na ESP32
+  dnsServer.start(53, "*", ip);
+  Serial.println("DNS captive portal spusten");
+
   // Spuštění webserveru
   setupServer();
 
@@ -412,6 +386,8 @@ void setup() {
 // ====== LOOP ======
 
 void loop() {
+  dnsServer.processNextRequest();
+
   if (currentState == PLAYING) {
     if (dfPlayer.available()) {
       uint8_t type = dfPlayer.readType();
@@ -419,7 +395,6 @@ void loop() {
         Serial.println("Skladba dohrana.");
         currentState = STOPPED;
         currentTrack = 0;
-        pauseOffset = 0;
       }
     }
   }
